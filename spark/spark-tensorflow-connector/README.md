@@ -8,8 +8,8 @@ The library supports both the Scala and PySpark APIs. See [Usage examples](#usag
 
 ## Breaking changes
 
-* 08/20/2018 - Reverted artifactId back to `org.tensorflow.spark-tensorflow-connector`
-* 05/29/2018 - Changed the artifactId from `org.tensorflow.spark-tensorflow-connector` to `org.tensorflow.spark-connector`
+- 08/20/2018 - Reverted artifactId back to `org.tensorflow.spark-tensorflow-connector`
+- 05/29/2018 - Changed the artifactId from `org.tensorflow.spark-tensorflow-connector` to `org.tensorflow.spark-connector`
 
 ## Prerequisites
 
@@ -20,6 +20,7 @@ The library supports both the Scala and PySpark APIs. See [Usage examples](#usag
 3. [TensorFlow Hadoop](../../hadoop) - Provided as Maven dependency. You can also build the latest version as described [here.](../../hadoop)
 
 ## Building the library
+
 Build the library using Maven 3.3.9 or newer as shown below:
 
 ```sh
@@ -33,6 +34,7 @@ mvn clean install
 ```
 
 To build the library for a different version of TensorFlow, e.g., 1.5.0, use:
+
 ```sh
 # Build TensorFlow Hadoop
 cd ../../hadoop
@@ -63,6 +65,7 @@ After installation (or deployment), the package can be used with the following d
     ```
 
 ## Using Spark Shell
+
 Run this library in Spark using the `--jars` command line option in `spark-shell`, `pyspark` or `spark-submit`. For example:
 
 ```sh
@@ -70,26 +73,29 @@ $SPARK_HOME/bin/spark-shell --jars target/spark-tensorflow-connector_2.11-1.10.0
 ```
 
 ## Features
+
 This library allows reading TensorFlow records in local or distributed filesystem as [Spark DataFrames](https://spark.apache.org/docs/latest/sql-programming-guide.html).
 When reading TensorFlow records into Spark DataFrame, the API accepts several options:
-* `load`: input path to TensorFlow records. Similar to Spark can accept standard Hadoop globbing expressions.
-* `schema`: schema of TensorFlow records. Optional schema defined using Spark StructType. If not provided, the schema is inferred from TensorFlow records.
-* `recordType`: input format of TensorFlow records. By default it is Example. Possible values are:
-  * `Example`: TensorFlow [Example](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto) records
-  * `SequenceExample`: TensorFlow [SequenceExample](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto) records
+
+- `load`: input path to TensorFlow records. Similar to Spark can accept standard Hadoop globbing expressions.
+- `schema`: schema of TensorFlow records. Optional schema defined using Spark StructType. If not provided, the schema is inferred from TensorFlow records.
+- `recordType`: input format of TensorFlow records. By default it is Example. Possible values are:
+  - `Example`: TensorFlow [Example](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto) records
+  - `SequenceExample`: TensorFlow [SequenceExample](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto) records
 
 When writing Spark DataFrame to TensorFlow records, the API accepts several options:
-* `save`: output path to TensorFlow records. Output path to TensorFlow records on local or distributed filesystem.
-* `codec`: codec for compressinng Tensorflow records. For example, `option("codec", "org.apache.hadoop.io.compress.GzipCodec")` enables gzip
-compression. While reading compressed TensorFlow records, `codec` can be inferred automatically, so this option is not required for reading.
-* `recordType`: output format of TensorFlow records. By default it is Example. Possible values are:
-  * `Example`: TensorFlow [Example](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto) records
-  * `SequenceExample`: TensorFlow [SequenceExample](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto) records
-* `writeLocality`: determines whether the TensorFlow records are written locally on the workers
-or on a distributed file system. Possible values are:
-  * `distributed` (default): the dataframe is written using Spark's default file system.
-  * `local`: writes the content on the disks of each the Spark workers, in a partitioned manner
-  (see details in the paragraph below).
+
+- `save`: output path to TensorFlow records. Output path to TensorFlow records on local or distributed filesystem.
+- `codec`: codec for compressinng Tensorflow records. For example, `option("codec", "org.apache.hadoop.io.compress.GzipCodec")` enables gzip
+  compression. While reading compressed TensorFlow records, `codec` can be inferred automatically, so this option is not required for reading.
+- `recordType`: output format of TensorFlow records. By default it is Example. Possible values are:
+  - `Example`: TensorFlow [Example](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto) records
+  - `SequenceExample`: TensorFlow [SequenceExample](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto) records
+- `writeLocality`: determines whether the TensorFlow records are written locally on the workers
+  or on a distributed file system. Possible values are:
+  - `distributed` (default): the dataframe is written using Spark's default file system.
+  - `local`: writes the content on the disks of each the Spark workers, in a partitioned manner
+    (see details in the paragraph below).
 
 _Local mode write_ each of the workers stores on the local disk a subset of the data.
 The subset that is stored on each worker is determined by the partitioning of the Dataframe.
@@ -99,41 +105,42 @@ This is useful in the context of distributed training, in which each of the work
 subset of the data to work on.
 When this mode is activated, the path provided to the writer is interpreted as a base path that is
 created on each of the worker nodes, and that will be populated with data from the dataframe. For
- example, the following code:
+example, the following code:
 
 ```scala
 myDataFrame.write.format("tfrecords").option("writeLocality", "local").save("/path")
 ```
 
 will lead to each worker nodes to have the following files:
-  - worker1: /path/part-0001.tfrecord, /path/part-0002.tfrecord, ...
-  - worker2: /path/part-0042.tfrecord, ...
 
+- worker1: /path/part-0001.tfrecord, /path/part-0002.tfrecord, ...
+- worker2: /path/part-0042.tfrecord, ...
 
 ## Schema inference
+
 This library supports automatic schema inference when reading TensorFlow records into Spark DataFrames.
 Schema inference is expensive since it requires an extra pass through the data.
 
 The schema inference rules are described in the table below:
 
-| TFRecordType             | Feature Type  | Inferred Spark Data Type  |
-| ------------------------ |:--------------|:--------------------------|
-| Example, SequenceExample | Int64List     | LongType if all lists have length=1, else ArrayType(LongType) |
-| Example, SequenceExample | FloatList     | FloatType if all lists have length=1, else ArrayType(FloatType) |
-| Example, SequenceExample | BytesList     | StringType if all lists have length=1, else ArrayType(StringType) |
-| SequenceExample          | FeatureList of Int64List | ArrayType(ArrayType(LongType)) |
-| SequenceExample          | FeatureList of FloatList | ArrayType(ArrayType(FloatType)) |
-| SequenceExample          | FeatureList of BytesList | ArrayType(ArrayType(StringType)) |
+| TFRecordType             | Feature Type             | Inferred Spark Data Type                                          |
+| ------------------------ | :----------------------- | :---------------------------------------------------------------- |
+| Example, SequenceExample | Int64List                | LongType if all lists have length=1, else ArrayType(LongType)     |
+| Example, SequenceExample | FloatList                | FloatType if all lists have length=1, else ArrayType(FloatType)   |
+| Example, SequenceExample | BytesList                | StringType if all lists have length=1, else ArrayType(StringType) |
+| SequenceExample          | FeatureList of Int64List | ArrayType(ArrayType(LongType))                                    |
+| SequenceExample          | FeatureList of FloatList | ArrayType(ArrayType(FloatType))                                   |
+| SequenceExample          | FeatureList of BytesList | ArrayType(ArrayType(StringType))                                  |
 
 ## Supported data types
 
 The supported Spark data types are listed in the table below:
 
-| Type            | Spark DataTypes                          |
-| --------------- |:------------------------------------------|
-| Scalar          | IntegerType, LongType, FloatType, DoubleType, DecimalType, StringType, BinaryType, BooleanType |
+| Type            | Spark DataTypes                                                                                                            |
+| --------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| Scalar          | IntegerType, LongType, FloatType, DoubleType, DecimalType, StringType, BinaryType, BooleanType                             |
 | Array           | VectorType, ArrayType of IntegerType, LongType, FloatType, DoubleType, DecimalType, BooleanType, BinaryType, or StringType |
-| Array of Arrays | ArrayType of ArrayType of IntegerType, LongType, FloatType, DoubleType, DecimalType, BinaryType, or StringType |
+| Array of Arrays | ArrayType of ArrayType of IntegerType, LongType, FloatType, DoubleType, DecimalType, BinaryType, or StringType             |
 
 ## Usage Examples
 
@@ -147,7 +154,7 @@ Run PySpark with the spark_connector in the jars argument as shown below:
 
 The following Python code snippet demonstrates usage on test data.
 
-```
+```python
 from pyspark.sql.types import *
 
 path = "test-output.tfrecord"
@@ -168,7 +175,7 @@ df.show()
 
 #### Python inference with pandas_udf and estimators (requires spark >= 2.4)
 
-```
+```python
 import pandas as pd
 import pyspark
 from pyspark.sql.functions import struct, pandas_udf
@@ -193,7 +200,7 @@ class EstimatorWrapper(object):
 
 
 estimator_wrapper = EstimatorWrapper(model_path)
-estimator_wrapper_broadcast = spark.sparkContext.broadcast(estimator_wrapper) 
+estimator_wrapper_broadcast = spark.sparkContext.broadcast(estimator_wrapper)
 
 def inference(tfr):
     outputs = estimator_wrapper_broadcast.value.estimator({"inputs": tfr})
@@ -208,12 +215,14 @@ def tf_record_udf(col):
 
 filtered_cols_in_one_row = struct([df[x] for x in df.columns])
 
-df.withColumn("prediction", 
+df.withColumn("prediction",
               inference_udf(tf_record_udf(filtered_cols_in_one_row)))
 ```
 
 ### Scala API
+
 Run Spark shell with the spark_connector in the jars argument as shown below:
+
 ```sh
 $SPARK_HOME/bin/spark-shell --jars target/spark-tensorflow-connector_2.11-1.10.0.jar
 ```
@@ -230,14 +239,14 @@ val path = "test-output.tfrecord"
 val testRows: Array[Row] = Array(
 new GenericRow(Array[Any](11, 1, 23L, 10.0F, 14.0, List(1.0, 2.0), "r1")),
 new GenericRow(Array[Any](21, 2, 24L, 12.0F, 15.0, List(2.0, 2.0), "r2")))
-val schema = StructType(List(StructField("id", IntegerType), 
+val schema = StructType(List(StructField("id", IntegerType),
                              StructField("IntegerCol", IntegerType),
                              StructField("LongCol", LongType),
                              StructField("FloatCol", FloatType),
                              StructField("DoubleCol", DoubleType),
                              StructField("VectorCol", ArrayType(DoubleType, true)),
                              StructField("StringCol", StringType)))
-                             
+
 val rdd = spark.sparkContext.parallelize(testRows)
 
 //Save DataFrame as TFRecords
@@ -255,6 +264,7 @@ importedDf2.show()
 ```
 
 #### Loading YouTube-8M dataset to Spark
+
 Here's how to import the [YouTube-8M](https://research.google.com/youtube8m/) dataset into a Spark DataFrame.
 
 ```sh
